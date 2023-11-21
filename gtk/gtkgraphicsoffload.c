@@ -94,6 +94,7 @@ enum
   PROP_0,
   PROP_CHILD,
   PROP_ENABLED,
+  PROP_DMABUF_FORMATS,
   LAST_PROP,
 };
 
@@ -158,9 +159,21 @@ gtk_graphics_offload_get_property (GObject    *object,
       g_value_set_enum (value, gtk_graphics_offload_get_enabled (self));
       break;
 
+    case PROP_DMABUF_FORMATS:
+      g_value_set_boxed (value, gtk_graphics_offload_get_dmabuf_formats (self));
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
     }
+}
+
+static void
+formats_notify (GObject    *object,
+                GParamSpec *pspec,
+                gpointer    data)
+{
+  g_object_notify_by_pspec (G_OBJECT (data), properties[PROP_DMABUF_FORMATS]);
 }
 
 static void
@@ -171,11 +184,19 @@ sync_subsurface (GtkGraphicsOffload *self)
   if (gtk_widget_get_realized (widget) && self->enabled != GTK_GRAPHICS_OFFLOAD_DISABLED)
     {
       if (!self->subsurface)
-        self->subsurface = gdk_surface_create_subsurface (gtk_widget_get_surface (widget));
+        {
+          self->subsurface = gdk_surface_create_subsurface (gtk_widget_get_surface (widget));
+          g_signal_connect (self->subsurface, "notify::dmabuf-formats",
+                            G_CALLBACK (formats_notify), self);
+        }
     }
   else
     {
-      g_clear_object (&self->subsurface);
+      if (self->subsurface)
+        {
+          g_signal_handlers_disconnect_by_func (self->subsurface, formats_notify, self);
+          g_object_unref (self->subsurface);
+        }
     }
 }
 
@@ -250,6 +271,10 @@ gtk_graphics_offload_class_init (GtkGraphicsOffloadClass *class)
                                                 GTK_TYPE_GRAPHICS_OFFLOAD_ENABLED,
                                                 GTK_GRAPHICS_OFFLOAD_ENABLED,
                                                 GTK_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_STATIC_STRINGS);
+
+  properties[PROP_DMABUF_FORMATS] = g_param_spec_boxed ("dmabuf-formats", NULL, NULL,
+                                                        GDK_TYPE_DMABUF_FORMATS,
+                                                        GTK_PARAM_READABLE | G_PARAM_EXPLICIT_NOTIFY);
 
   g_object_class_install_properties (object_class, LAST_PROP, properties);
 
@@ -366,4 +391,30 @@ gtk_graphics_offload_get_enabled (GtkGraphicsOffload *self)
   g_return_val_if_fail (GTK_IS_GRAPHICS_OFFLOAD (self), TRUE);
 
   return self->enabled;
+}
+
+/**
+ * gtk_graphics_offload_get_dmabuf_formats:
+ * @self: a `GtkGraphicsOffload`
+ *
+ * Gets the dmabuf formats that should be used for negotiating
+ * the content for this offload.
+ *
+ * Note that the property value may change as the window is fullscreened
+ * or circumstances change otherwise, so callers should listen for
+ * property notification and renegotiate the formats if necessary.
+ *
+ * Returns: (nullable): the dmabuf formats
+ *
+ * Since: 4.14
+ */
+GdkDmabufFormats *
+gtk_graphics_offload_get_dmabuf_formats (GtkGraphicsOffload *self)
+{
+  g_return_val_if_fail (GTK_IS_GRAPHICS_OFFLOAD (self), NULL);
+
+  if (self->subsurface)
+    return gdk_subsurface_get_dmabuf_formats (self->subsurface);
+
+  return NULL;
 }

@@ -58,4 +58,8 @@ GDK_AVAILABLE_IN_4_14
 GtkGraphicsOffloadEnabled
                  gtk_graphics_offload_get_enabled  (GtkGraphicsOffload        *self);
 
+GDK_AVAILABLE_IN_4_14
+GdkDmabufFormats *
+                 gtk_graphics_offload_get_dmabuf_formats (GtkGraphicsOffload *self);
+
 G_END_DECLS
