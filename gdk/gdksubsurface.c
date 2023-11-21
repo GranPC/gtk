@@ -21,6 +21,11 @@
 #include "gdksurfaceprivate.h"
 #include "gdktexture.h"
 
+enum {
+  PROP_DMABUF_FORMATS = 1,
+  N_PROPERTIES
+};
+
 G_DEFINE_TYPE (GdkSubsurface, gdk_subsurface, G_TYPE_OBJECT)
 
 static void
@@ -35,8 +40,28 @@ gdk_subsurface_finalize (GObject *object)
 
   g_ptr_array_remove (subsurface->parent->subsurfaces, subsurface);
   g_clear_object (&subsurface->parent);
+  g_clear_pointer (&subsurface->dmabuf_formats, gdk_dmabuf_formats_unref);
 
   G_OBJECT_CLASS (gdk_subsurface_parent_class)->finalize (object);
+}
+
+static void
+gdk_subsurface_get_property (GObject    *object,
+                             guint       prop_id,
+                             GValue     *value,
+                             GParamSpec *pspec)
+{
+  GdkSubsurface *subsurface = GDK_SUBSURFACE (object);
+
+  switch (prop_id)
+    {
+    case PROP_DMABUF_FORMATS:
+      g_value_set_boxed (value, subsurface->dmabuf_formats);
+      break;
+
+    default:
+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
+    }
 }
 
 static void
@@ -45,6 +70,13 @@ gdk_subsurface_class_init (GdkSubsurfaceClass *class)
   GObjectClass *object_class = G_OBJECT_CLASS (class);
 
   object_class->finalize = gdk_subsurface_finalize;
+  object_class->get_property = gdk_subsurface_get_property;
+
+  g_object_class_install_property (object_class,
+                                   PROP_DMABUF_FORMATS,
+                                   g_param_spec_boxed ("dmabuf-formats", NULL, NULL,
+                                                       GDK_TYPE_DMABUF_FORMATS,
+                                                       G_PARAM_READABLE | G_PARAM_STATIC_STRINGS));
 }
 
 GdkSurface *
@@ -102,4 +134,25 @@ gdk_subsurface_is_above_parent (GdkSubsurface *subsurface)
   g_return_val_if_fail (GDK_IS_SUBSURFACE (subsurface), TRUE);
 
   return GDK_SUBSURFACE_GET_CLASS (subsurface)->is_above_parent (subsurface);
+}
+
+void
+gdk_subsurface_set_dmabuf_formats (GdkSubsurface    *subsurface,
+                                   GdkDmabufFormats *formats)
+{
+  g_return_if_fail (GDK_IS_SUBSURFACE (subsurface));
+  g_return_if_fail (formats != NULL);
+
+  g_clear_pointer (&subsurface->dmabuf_formats, gdk_dmabuf_formats_unref);
+  subsurface->dmabuf_formats = gdk_dmabuf_formats_ref (formats);
+
+  g_object_notify (G_OBJECT (subsurface), "dmabuf-formats");
+}
+
+GdkDmabufFormats *
+gdk_subsurface_get_dmabuf_formats (GdkSubsurface *subsurface)
+{
+  g_return_val_if_fail (GDK_IS_SUBSURFACE (subsurface), NULL);
+
+  return subsurface->dmabuf_formats;
 }

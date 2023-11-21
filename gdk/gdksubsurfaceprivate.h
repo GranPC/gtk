@@ -21,6 +21,7 @@
 
 #include "gdkenumtypes.h"
 #include "gdksurface.h"
+#include "gdkdmabufformats.h"
 #include <graphene.h>
 
 G_BEGIN_DECLS
@@ -41,6 +42,8 @@ struct _GdkSubsurface
   GdkSurface *parent;
 
   int ref_count;
+
+  GdkDmabufFormats *dmabuf_formats;
 };
 
 
@@ -73,6 +76,11 @@ GdkTexture *    gdk_subsurface_get_texture     (GdkSubsurface         *subsurfac
 void            gdk_subsurface_get_rect        (GdkSubsurface         *subsurface,
                                                 graphene_rect_t       *rect);
 gboolean        gdk_subsurface_is_above_parent (GdkSubsurface         *subsurface);
+
+void            gdk_subsurface_set_dmabuf_formats (GdkSubsurface      *subsurface,
+                                                   GdkDmabufFormats   *formats);
+GdkDmabufFormats *
+                gdk_subsurface_get_dmabuf_formats (GdkSubsurface      *subsurface);
 
 
 G_END_DECLS
