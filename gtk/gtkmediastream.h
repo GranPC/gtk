@@ -160,5 +160,12 @@ void                    gtk_media_stream_error_valist           (GtkMediaStream 
                                                                  const char     *format,
                                                                  va_list         args) G_GNUC_PRINTF (4, 0);
 
+GDK_AVAILABLE_IN_4_14
+void                    gtk_media_stream_set_dmabuf_formats     (GtkMediaStream   *self,
+                                                                 GdkDmabufFormats *formats);
+
+GDK_AVAILABLE_IN_4_14
+GdkDmabufFormats *      gtk_media_stream_get_dmabuf_formats     (GtkMediaStream   *self);
+
 G_END_DECLS
 

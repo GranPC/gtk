@@ -20,6 +20,7 @@
 #include "config.h"
 
 #include "gtkmediastream.h"
+#include "gdk/gdkdmabufformats.h"
 
 
 /**
@@ -52,6 +53,7 @@ struct _GtkMediaStreamPrivate
   gint64 duration;
   GError *error;
   double volume;
+  GdkDmabufFormats *dmabuf_formats;
 
   guint has_audio : 1;
   guint has_video : 1;
@@ -79,6 +81,7 @@ enum {
   PROP_LOOP,
   PROP_MUTED,
   PROP_VOLUME,
+  PROP_DMABUF_FORMATS,
 
   N_PROPS,
 };
@@ -175,6 +178,10 @@ gtk_media_stream_set_property (GObject      *object,
       gtk_media_stream_set_volume (self, g_value_get_double (value));
       break;
 
+    case PROP_DMABUF_FORMATS:
+      gtk_media_stream_set_dmabuf_formats (self, g_value_get_boxed (value));
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -242,6 +249,10 @@ gtk_media_stream_get_property (GObject    *object,
 
     case PROP_VOLUME:
       g_value_set_double (value, priv->volume);
+      break;
+
+    case PROP_DMABUF_FORMATS:
+      g_value_set_boxed (value, priv->dmabuf_formats);
       break;
 
     default:
@@ -420,6 +431,11 @@ gtk_media_stream_class_init (GtkMediaStreamClass *class)
     g_param_spec_double ("volume", NULL, NULL,
                          0.0, 1.0, 1.0,
                          G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_STATIC_STRINGS);
+
+  properties[PROP_DMABUF_FORMATS] =
+    g_param_spec_boxed ("dmabuf-formats", NULL, NULL,
+                        GDK_TYPE_DMABUF_FORMATS,
+                        G_PARAM_READWRITE | G_PARAM_EXPLICIT_NOTIFY | G_PARAM_STATIC_STRINGS);
 
   g_object_class_install_properties (gobject_class, N_PROPS, properties);
 }
@@ -1418,3 +1434,30 @@ gtk_media_stream_seek_failed (GtkMediaStream *self)
 
   g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_SEEKING]);
 }
+
+void
+gtk_media_stream_set_dmabuf_formats (GtkMediaStream   *self,
+                                     GdkDmabufFormats *formats)
+{
+  GtkMediaStreamPrivate *priv = gtk_media_stream_get_instance_private (self);
+
+  g_return_if_fail (GTK_IS_MEDIA_STREAM (self));
+
+  g_clear_pointer (&priv->dmabuf_formats, gdk_dmabuf_formats_unref);
+  if (formats)
+    priv->dmabuf_formats = gdk_dmabuf_formats_ref (formats);
+
+  g_object_notify_by_pspec (G_OBJECT (self), properties[PROP_DMABUF_FORMATS]);
+}
+
+
+GdkDmabufFormats *
+gtk_media_stream_get_dmabuf_formats (GtkMediaStream *self)
+{
+  GtkMediaStreamPrivate *priv = gtk_media_stream_get_instance_private (self);
+
+  g_return_val_if_fail (GTK_IS_MEDIA_STREAM (self), NULL);
+
+  return priv->dmabuf_formats;
+}
+
