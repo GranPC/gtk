@@ -391,6 +391,16 @@ gtk_video_unroot (GtkWidget *widget)
 }
 
 static void
+dmabuf_formats_changed (GtkGraphicsOffload *offload,
+                        GParamSpec         *pspec,
+                        GtkVideo           *self)
+{
+  if (self->media_stream)
+    gtk_media_stream_set_dmabuf_formats (self->media_stream,
+                                         gtk_graphics_offload_get_dmabuf_formats (offload));
+}
+
+static void
 gtk_video_class_init (GtkVideoClass *klass)
 {
   GtkWidgetClass *widget_class = GTK_WIDGET_CLASS (klass);
@@ -473,6 +483,7 @@ gtk_video_class_init (GtkVideoClass *klass)
   gtk_widget_class_bind_template_callback (widget_class, gtk_video_motion);
   gtk_widget_class_bind_template_callback (widget_class, gtk_video_pressed);
   gtk_widget_class_bind_template_callback (widget_class, overlay_clicked_cb);
+  gtk_widget_class_bind_template_callback (widget_class, dmabuf_formats_changed);
 
   gtk_widget_class_set_layout_manager_type (widget_class, GTK_TYPE_BIN_LAYOUT);
   gtk_widget_class_set_css_name (widget_class, I_("video"));
@@ -731,13 +742,20 @@ gtk_video_set_media_stream (GtkVideo       *self,
           surface = gtk_native_get_surface (gtk_widget_get_native (GTK_WIDGET (self)));
           gtk_media_stream_unrealize (self->media_stream, surface);
         }
+      gtk_media_stream_set_dmabuf_formats (self->media_stream, NULL);
       g_object_unref (self->media_stream);
       self->media_stream = NULL;
     }
 
   if (stream)
     {
+      GdkDmabufFormats *formats;
+
       self->media_stream = g_object_ref (stream);
+
+      formats = gtk_graphics_offload_get_dmabuf_formats (GTK_GRAPHICS_OFFLOAD (self->graphics_offload));
+      gtk_media_stream_set_dmabuf_formats (self->media_stream, formats);
+
       gtk_media_stream_set_loop (stream, self->loop);
       if (gtk_widget_get_realized (GTK_WIDGET (self)))
         {
