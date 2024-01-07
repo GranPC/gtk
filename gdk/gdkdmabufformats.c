@@ -205,6 +205,8 @@ gdk_dmabuf_formats_contains (GdkDmabufFormats *formats,
  * gdk_dmabuf_formats_new:
  * @formats: the formats
  * @n_formats: the length of @formats
+ * @device: the DRM device that the compositor uses, or
+ *   0 if this object doesn't describe compositor formats
  *
  * Creates a new `GdkDmabufFormats struct for
  * the given formats.
@@ -218,7 +220,8 @@ gdk_dmabuf_formats_contains (GdkDmabufFormats *formats,
  */
 GdkDmabufFormats *
 gdk_dmabuf_formats_new (GdkDmabufFormat *formats,
-                        gsize            n_formats)
+                        gsize            n_formats,
+                        guint64          device)
 {
   GdkDmabufFormats *self;
 
@@ -227,6 +230,7 @@ gdk_dmabuf_formats_new (GdkDmabufFormat *formats,
   self->ref_count = 1;
   self->n_formats = n_formats;
   self->formats = g_new (GdkDmabufFormat, n_formats);
+  self->device = device;
 
   memcpy (self->formats, formats, n_formats * sizeof (GdkDmabufFormat));
 
