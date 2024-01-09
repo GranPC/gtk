@@ -1,0 +1,11 @@
+color {
+  bounds: -10 0 120 50;
+  color: rgb(255,0,0);
+}
+transform {
+  transform: translate(0, 40);
+  child: text {
+    font: "Cantarell 30";
+    glyphs: 1 40, 1 40 0 0 color, 1 40;
+  }
+}
